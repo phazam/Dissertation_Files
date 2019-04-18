@@ -1,0 +1,94 @@
+[[init]]
+iterators = rep subj time csize priors res;
+
+subj = 1:3;
+time = 1:3;
+csize = 1;
+priors = 1:5;
+res = 1:2;
+rep = 1:2000;
+
+
+subjName#subj = "n30" "n90" "n120";
+subj1Name#subj = 30 90 120;
+
+timeName#time = "50t" "150t" "250t";
+time1Name#time = 50 150 250;
+
+priorsName#priors = "difuse" "weak" "info" "wrong" "reallywrong";
+pri1Name#priors = p1~N(0.000,infinity) p1~N(.5,.25) p1~N(0.5,.05) p1~N(0.72,.05) p1~N(1.62,.05);     
+pri5Name#priors = p5~N(0.000,infinity) p5~N(1,.5) p5~N(1,.1) p5~N(1.32,.1) p5~N(2.58,.1);	
+pri6Name#priors = p6~N(0.000,infinity) p6~N(-1,.5) p6~N(-1,.1) p6~N(-1.32,.1) p6~N(-2.58,.1);	
+pri7Name#priors = p7~N(0.000,infinity) p7~N(1,.5) p7~N(1,.1) p7~N(1.32,.1) p7~N(2.58,.1);	
+pri8Name#priors = p8~N(0.000,infinity) p8~N(1,.5) p8~N(1,.1) p8~N(1.32,.1) p8~N(2.58,.1);	
+pri10Name#priors = p10~N(0.000,infinity) p8~N(.5,.25) p8~N(.5,.05) p8~N(0.72,.05) p8~N(1.62,.05);
+
+resName#res = "low" "high";
+
+res1Name#res = .2 .5;
+res2Name#res = 1 2;
+res3Name#res = .2 .5;
+
+filename = "Cubic_study1_[[subjName#subj]]_[[timeName#time]]_[[priorsName#priors]]_[[resName#res]]_rep[[rep]].inp";
+outputDirectory = "study1/Cubic/[[subjName#subj]]/[[timeName#time]]/[[priorsName#priors]]/[[resName#res]]/";
+[[/init]]
+
+TITLE:  Cubic analysis: Study 1 knots3 [[subjName#subj]]_[[timeName#time]]_[[priorsName#priors]]_[[resName#res]]_rep[[rep]].
+                         
+DATA: FILE = "data/step1_[[subjName#subj]]_[[timeName#time]]_[[priorsName#priors]]_[[resName#res]]_rep[[rep]].dat";
+
+VARIABLE: names are y x t c;
+        within=x; 
+        cluster=c t;
+        usevar= x y2 x1 x2 x3 x4;
+        between=(t) x1 x2 x3 x4;
+        
+DEFINE: 
+    y2 = (log(t)+(t+((t*t)*(-.1))+(t*t*t)*.001)*x)+y;
+    x1 = log(t);
+    x2 = t;
+    x3 = (t*t)*.1;
+    x4 = (t*t*t)*.001;
+
+ANALYSIS: TYPE = cross random;
+		estimator=bayes;  
+        process=2;
+        chains=2;
+        BCONVERGENCE = 0.01;
+
+MODEL: 	
+		%within%
+		y2*[[res1Name#res]]; 
+		eta by y2@1 (&1); 
+       		eta on eta&1*0.5 (p1); 
+		eta*[[res2Name#res]];
+        	s | y2 on x;
+
+        	%between t%
+        	y2*0 ; 
+		s*[[res3Name#res]]; 
+		[s*0];
+        	y2 on x1*1 (p8); 
+		s on x2*1 (p5);
+	        s on x3*-1 (p6);
+		s on x4*1(p7);
+		        
+        	%between c%
+		y2*.5;
+        	[y2*0] (p10);
+       		s@0; [s@0];
+
+MODEL PRIORS:
+
+[[pri1Name#priors]];
+[[pri5Name#priors]];
+[[pri6Name#priors]];
+[[pri7Name#priors]];
+[[pri8Name#priors]];
+[[pri10Name#priors]];
+
+OUTPUT: tech8 tech1;
+
+savedata:    results are results_Cubic_study1_[[subjName#subj]]_[[timeName#time]]_[[priorsName#priors]]_[[resName#res]]_rep[[rep]].sav;
+BPARAMETERS is bparam_Cubic_study1_[[subjName#subj]]_[[timeName#time]]_[[priorsName#priors]]_[[resName#res]]_rep[[rep]].txt;
+  PLOT: TYPE = PLOT3;
